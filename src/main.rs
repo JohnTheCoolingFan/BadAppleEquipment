@@ -56,7 +56,6 @@ impl QuadTree {
 
     fn reconstruct_img(&self) -> RgbImage {
         let mut res = RgbImage::new(CANVAS_SIZE, CANVAS_SIZE);
-        res.fill(0);
         Self::reconstruct_region(&self.root, &mut res, 0, 0, CANVAS_SIZE);
         res
     }
