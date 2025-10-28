@@ -174,7 +174,7 @@ impl QuadTreeNode {
                 let c2 = children[2].as_lua();
                 let c3 = children[3].as_lua();
 
-                format!("{{{c0}, {c1}, {c2}, {c3}}}")
+                format!("{{{c0},{c1},{c2},{c3}}}")
             }
         }
     }
