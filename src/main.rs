@@ -179,7 +179,7 @@ impl QuadTreeNode {
 fn main() {
     let progress_bar = ProgressBar::new(IMAGE_AMOUNT).with_message("Processing images");
     let mut chunk_counts: HashMap<String, u32> = HashMap::new();
-    let mut out_file = File::create("frames_tree.lua").unwrap();
+    let mut out_file = File::create("frames-tree.lua").unwrap();
     out_file.write_all(b"return {").unwrap();
     let mut working_buffer = ImageBuffer::new(512, 512);
     for inum in 0..IMAGE_AMOUNT {
