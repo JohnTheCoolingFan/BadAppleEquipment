@@ -17,9 +17,11 @@ const HEIGHT_ORIGINAL: u32 = 360;
 const WIDTH: u32 = WIDTH_ORIGINAL / DOWNSCALE as u32;
 const HEIGHT: u32 = HEIGHT_ORIGINAL / DOWNSCALE as u32;
 
-const SAMPLE_SIZE: u32 = 8;
+const SAMPLE_SIZE: u32 = 4;
 const CHUNKS_X: u32 = WIDTH / SAMPLE_SIZE;
 const CHUNKS_Y: u32 = HEIGHT / SAMPLE_SIZE;
+
+const CANVAS_SIZE: u32 = 512 / (DOWNSCALE as u32);
 
 fn encode_pixels_hex(values: [bool; (SAMPLE_SIZE * SAMPLE_SIZE) as usize]) -> String {
     let mut res = String::with_capacity(values.len() / 4);
@@ -45,14 +47,17 @@ struct QuadTree {
 impl QuadTree {
     fn build(image: &RgbImage) -> Self {
         QuadTree {
-            root: QuadTreeNode::node_from_view(&image.view(0, 0, 512, 512), 512),
+            root: QuadTreeNode::node_from_view(
+                &image.view(0, 0, CANVAS_SIZE, CANVAS_SIZE),
+                CANVAS_SIZE,
+            ),
         }
     }
 
     fn reconstruct_img(&self) -> RgbImage {
-        let mut res = RgbImage::new(512, 512);
+        let mut res = RgbImage::new(CANVAS_SIZE, CANVAS_SIZE);
         res.fill(0);
-        Self::reconstruct_region(&self.root, &mut res, 0, 0, 512);
+        Self::reconstruct_region(&self.root, &mut res, 0, 0, CANVAS_SIZE);
         res
     }
 
@@ -181,7 +186,7 @@ fn main() {
     let mut chunk_counts: HashMap<String, u32> = HashMap::new();
     let mut out_file = File::create("frames-tree.lua").unwrap();
     out_file.write_all(b"return {").unwrap();
-    let mut working_buffer = ImageBuffer::new(512, 512);
+    let mut working_buffer = ImageBuffer::new(CANVAS_SIZE, CANVAS_SIZE);
     for inum in 0..IMAGE_AMOUNT {
         let inum = inum + 1;
         let image = image::open(format!("images/{DOWNSCALE}x/frame{inum:04}.png")).unwrap();
@@ -202,6 +207,7 @@ fn main() {
         progress_bar.inc(1);
     }
     out_file.write_all(b"}").unwrap();
+    progress_bar.finish();
     println!("All done");
     println!("Number of unique chunks: {}", chunk_counts.len());
 
