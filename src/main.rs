@@ -1,6 +1,13 @@
-use std::{collections::HashMap, fmt::Display, fs::File, io::Write, path::PathBuf, time::Instant};
+use std::{
+    collections::HashMap,
+    fmt::Display,
+    fs::File,
+    io::{BufWriter, Write},
+    path::PathBuf,
+    time::Instant,
+};
 
-use image::{GenericImage, ImageBuffer, Rgb};
+use image::{GenericImage, ImageBuffer, Pixel, Rgb};
 use indicatif::ProgressBar;
 use rayon::prelude::*;
 
@@ -53,6 +60,10 @@ impl TileId {
 
         Self(res)
     }
+
+    fn count_ones(&self) -> u32 {
+        self.0.iter().map(|val| val.count_ones()).sum()
+    }
 }
 
 impl Display for TileId {
@@ -62,10 +73,6 @@ impl Display for TileId {
         }
         Ok(())
     }
-}
-
-fn encode_pixels_hex(values: [bool; (SAMPLE_SIZE * SAMPLE_SIZE) as usize]) -> String {
-    TileId::from_samples(values).to_string()
 }
 
 fn main() {
@@ -80,19 +87,25 @@ fn main() {
 
     let mut chunk_counts: HashMap<TileId, u32> = HashMap::new();
 
-    let mut tree_out_file = File::create(out_dir.join("frames-tree.lua")).unwrap();
+    let mut tree_out_file = BufWriter::new(File::create(out_dir.join("frames-tree.lua")).unwrap());
     tree_out_file.write_all(b"return {").unwrap();
 
-    let mut filled_squares_file = File::create(out_dir.join("filled-squares.lua")).unwrap();
+    let mut filled_squares_file =
+        BufWriter::new(File::create(out_dir.join("filled-squares.lua")).unwrap());
     filled_squares_file.write_all(b"return {").unwrap();
 
-    let mut working_buffer = ImageBuffer::new(CANVAS_SIZE, CANVAS_SIZE);
+    let mut buf = [0; (CANVAS_SIZE * CANVAS_SIZE) as usize * Rgb::<u8>::CHANNEL_COUNT as usize];
+    let mut working_buffer =
+        ImageBuffer::<Rgb<u8>, _>::from_raw(CANVAS_SIZE, CANVAS_SIZE, buf.as_mut_slice()).unwrap();
 
     let processing_start = Instant::now();
+
     progress_bar.println(format!(
-        "Started processing at {}ms",
+        "Started image processing at {}ms",
         (processing_start - start).as_millis()
     ));
+
+    let mut pixel_count_all = 0_u64;
 
     for inum in 0..IMAGE_AMOUNT {
         let inum = inum + 1;
@@ -119,26 +132,74 @@ fn main() {
         }
         filled_squares_file.write_all(b"},").unwrap();
 
+        let total_in_frame: u64 = quad_tree
+            .iter()
+            .map(|node| match node.node {
+                QuadTreeNode::Shaped(id) => id.count_ones() as u64,
+                _ => 0,
+            })
+            .sum();
+        pixel_count_all += total_in_frame;
+
         progress_bar.inc(1);
     }
 
     tree_out_file.write_all(b"}").unwrap();
+    tree_out_file.flush().unwrap();
+    drop(tree_out_file);
+
     filled_squares_file.write_all(b"}").unwrap();
+    filled_squares_file.flush().unwrap();
+    drop(filled_squares_file);
 
     progress_bar.finish_with_message("All done");
 
     let processing_end = Instant::now();
     println!(
-        "Processing ended at {}ms, took {}ms",
+        "Image processing ended at {}ms, took {}ms",
         (processing_end - processing_start).as_millis(),
         (processing_end - start).as_millis()
     );
 
     println!("Number of unique chunks: {}", chunk_counts.len());
 
+    let mut shared_numbers_file =
+        BufWriter::new(File::create(out_dir.join("more-than-two-tiles.lua")).unwrap());
+    shared_numbers_file.write_all(b"return {").unwrap();
+
+    for (tile_id, _) in chunk_counts.iter().filter(|(_, count)| **count > 1) {
+        write!(&mut shared_numbers_file, "\"{tile_id}\",").unwrap();
+    }
+
+    shared_numbers_file.write_all(b"}").unwrap();
+    shared_numbers_file.flush().unwrap();
+    drop(shared_numbers_file);
+
+    println!(
+        "There are {} tiles that are used more than once",
+        chunk_counts.iter().filter(|(_, count)| **count > 1).count()
+    );
+
+    let shared_pixel_count: u64 = chunk_counts
+        .iter()
+        .filter(|(_, count)| **count > 1)
+        .map(|(id, count)| (id.count_ones() * count) as u64)
+        .sum();
+    let unique_pixel_count = pixel_count_all - shared_pixel_count;
+
+    println!("There are {pixel_count_all} total pixels in tiles in all frames");
+    println!("The tiles that are shared between frames amount to {shared_pixel_count} pixels");
+    println!("The number of pixels in unique tiles across all frames is {unique_pixel_count}");
+
     let used_numbers_start = Instant::now();
 
-    let mut used_numbers_file = File::create(out_dir.join("used-tiles.lua")).unwrap();
+    println!(
+        "Shared numbers lua file took {}ms",
+        (used_numbers_start - processing_end).as_millis()
+    );
+
+    let mut used_numbers_file =
+        BufWriter::new(File::create(out_dir.join("used-tiles.lua")).unwrap());
     used_numbers_file.write_all(b"return {").unwrap();
 
     for tile_id in chunk_counts.keys() {
@@ -148,6 +209,8 @@ fn main() {
     }
 
     used_numbers_file.write_all(b"}").unwrap();
+    used_numbers_file.flush().unwrap();
+    drop(used_numbers_file);
 
     let used_numbers_end = Instant::now();
 
@@ -156,7 +219,8 @@ fn main() {
         (used_numbers_end - used_numbers_start).as_millis()
     );
 
-    let mut out_stats = File::create(out_dir.join(format!("tile_stats_{DOWNSCALE}x.csv"))).unwrap();
+    let mut out_stats =
+        BufWriter::new(File::create(out_dir.join(format!("tile_stats_{DOWNSCALE}x.csv"))).unwrap());
     writeln!(&mut out_stats, "tile_id,amount").unwrap();
 
     for (tile_id, amount) in chunk_counts.iter() {
@@ -164,6 +228,7 @@ fn main() {
     }
 
     out_stats.flush().unwrap();
+    drop(out_stats);
 
     let tile_stats_end = Instant::now();
 

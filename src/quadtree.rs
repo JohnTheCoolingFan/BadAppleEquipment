@@ -1,6 +1,6 @@
-use image::{GenericImageView, Rgb, RgbImage, SubImage};
+use image::{GenericImageView, ImageBuffer, Rgb, RgbImage, SubImage};
 
-use crate::{BLACK, CANVAS_SIZE, SAMPLE_SIZE, TileId, WHITE, encode_pixels_hex};
+use crate::{BLACK, CANVAS_SIZE, SAMPLE_SIZE, TileId, WHITE};
 
 #[derive(Debug)]
 pub struct QuadTree {
@@ -8,7 +8,7 @@ pub struct QuadTree {
 }
 
 impl QuadTree {
-    pub fn build(image: &RgbImage) -> Self {
+    pub fn build(image: &ImageBuffer<Rgb<u8>, &mut [u8]>) -> Self {
         QuadTree {
             root: QuadTreeNode::node_from_view(
                 &image.view(0, 0, CANVAS_SIZE, CANVAS_SIZE),
@@ -84,17 +84,17 @@ impl QuadTree {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct QuadTreeNodeWithCoords<'a> {
-    node: &'a QuadTreeNode,
-    x: u32,
-    y: u32,
-    depth: u8,
+    pub node: &'a QuadTreeNode,
+    pub x: u32,
+    pub y: u32,
+    pub depth: u8,
 }
 
-impl QuadTreeNodeWithCoords<'_> {
+impl<'a> QuadTreeNodeWithCoords<'a> {
     pub fn side_size(&self, top_side_size: u32) -> u32 {
-        top_side_size / (self.depth + 2) as u32
+        top_side_size / (2_u32.pow(self.depth as u32 + 1))
     }
 }
 
@@ -112,9 +112,9 @@ impl<'a> Iterator for QuadTreeIter<'a> {
         match node.node {
             QuadTreeNode::Subdivided(children) => {
                 let side_size = node.side_size(self.top_tile_size);
-                for (i, child) in children.iter().enumerate().rev() {
-                    let x = ((i % 2) as u32 * side_size) + node.x;
-                    let y = ((i / 2) as u32 * side_size) + node.y;
+                for (child, (x, y)) in children.iter().zip([(0, 0), (1, 0), (0, 1), (1, 1)]).rev() {
+                    let x = (x * (side_size / 2)) + node.x;
+                    let y = (y * (side_size / 2)) + node.y;
                     let child_context = QuadTreeNodeWithCoords {
                         node: child,
                         x,
@@ -123,14 +123,14 @@ impl<'a> Iterator for QuadTreeIter<'a> {
                     };
                     self.stack.push(child_context);
                 }
-                self.stack.pop()
+                self.next()
             }
             _ => Some(node),
         }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum QuadTreeNode {
     Full,
     Empty,
