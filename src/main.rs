@@ -110,7 +110,7 @@ fn main() {
     let reconstruct_frame_num = match std::env::var("RECONSTRUCT_FRAME") {
         Ok(val) => Some(val.parse::<u64>().unwrap()),
         Err(std::env::VarError::NotPresent) => None,
-        Err(e) => panic!("Faield to parse `RECONSTRUCT_FRAME`: {e}"),
+        Err(e) => panic!("Failed to parse `RECONSTRUCT_FRAME`: {e}"),
     };
 
     for inum in 0..IMAGE_AMOUNT {
@@ -125,10 +125,14 @@ fn main() {
             && rfnum == inum
         {
             let img = quad_tree.reconstruct_img();
-            img.save(out_dir.join(format!("reconstructed_frame_{rfnum}.png")))
+            img.save(out_dir.join(format!("reconstructed_frame_{inum:04}.png")))
                 .unwrap();
             progress_bar.println(format!("Reconstructed frame {rfnum}"));
         }
+
+        let img = quad_tree.reconstruct_img();
+        img.save(out_dir.join(format!("reconstructed_frame_{inum:04}.png")))
+            .unwrap();
 
         for tile_id in quad_tree.root.get_shapes() {
             *chunk_counts.entry(*tile_id).or_insert(0) += 1;
@@ -179,7 +183,7 @@ fn main() {
     println!("Number of unique chunks: {}", chunk_counts.len());
 
     let mut shared_numbers_file =
-        BufWriter::new(File::create(out_dir.join("more-than-two-tiles.lua")).unwrap());
+        BufWriter::new(File::create(out_dir.join("repeating-tiles.lua")).unwrap());
     shared_numbers_file.write_all(b"return {").unwrap();
 
     for (tile_id, _) in chunk_counts.iter().filter(|(_, count)| **count > 1) {

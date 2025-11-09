@@ -6,18 +6,20 @@ local max_width = constants.width
 local max_height = constants.height
 local tile_size = constants.chunk_size
 
-local function descend_tree(node, filled_tiles_table, anchor_x, anchor_y, side_size)
+local function descend_tree(node, tile_positions_table, anchor_x, anchor_y, side_size)
     if anchor_x > max_width or anchor_y > max_height then
         return
     end
     if type(node) == "number" then
         if node == 1 then
-            table.insert(filled_tiles_table, { anchor_x, anchor_y, side_size })
+            table.insert(tile_positions_table, { anchor_x, anchor_y, side_size })
         end
         return
     end
     if type(node) == "string" then
-        --grid.put { name = "bad-apple-tile-" .. node, position = { anchor_x, anchor_y } }
+        if prototypes.equipment['bad-apple-tile-' .. node] then
+            table.insert(tile_positions_table, { anchor_x, anchor_y, node })
+        end
         return
     end
     -- only leaves table
@@ -29,17 +31,17 @@ local function descend_tree(node, filled_tiles_table, anchor_x, anchor_y, side_s
         local y = math.floor(i / 2)
         local new_anchor_x = anchor_x + x * new_side_size
         local new_anchor_y = anchor_y + y * new_side_size
-        descend_tree(child, filled_tiles_table, new_anchor_x, new_anchor_y, new_side_size)
+        descend_tree(child, tile_positions_table, new_anchor_x, new_anchor_y, new_side_size)
     end
 end
 
-local filled_squares = {}
+local tile_positions = {}
 
 local function populate_filled_squares(nodetree)
     for _, frametree in pairs(nodetree) do
         local frame_table = {}
         descend_tree(frametree, frame_table, 0, 0, 512)
-        table.insert(filled_squares, frame_table)
+        table.insert(tile_positions, frame_table)
     end
 end
 
@@ -67,14 +69,14 @@ script.on_event(defines.events.on_player_placed_equipment, function(eventdata)
 
             grid.clear()
 
-            local current_frame_tree = filled_squares[framenum]
+            local current_frame_tree = tile_positions[framenum]
 
             for _, squareinfo in pairs(current_frame_tree) do
-                grid.put { name = "bad-apple-tile-full-" .. (squareinfo[3]), position = { squareinfo[1], squareinfo[2] } }
+                grid.put { name = "bad-apple-tile-" .. (squareinfo[3]), position = { squareinfo[1], squareinfo[2] } }
             end
 
-            if prototypes.equipment["bad-apple-tile-" .. framenum] ~= nil then
-                grid.put { name = "bad-apple-tile-" .. framenum, position = { 0, 0 } }
+            if prototypes.equipment["bad-apple-wholeframe-" .. framenum] ~= nil then
+                grid.put { name = "bad-apple-wholeframe-" .. framenum, position = { 0, 0 } }
             end
 
             framenum = framenum + 1
