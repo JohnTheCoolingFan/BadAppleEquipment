@@ -130,10 +130,6 @@ fn main() {
             progress_bar.println(format!("Reconstructed frame {rfnum}"));
         }
 
-        let img = quad_tree.reconstruct_img();
-        img.save(out_dir.join(format!("reconstructed_frame_{inum:04}.png")))
-            .unwrap();
-
         for tile_id in quad_tree.root.get_shapes() {
             *chunk_counts.entry(*tile_id).or_insert(0) += 1;
         }
