@@ -107,6 +107,12 @@ fn main() {
 
     let mut pixel_count_all = 0_u64;
 
+    let reconstruct_frame_num = match std::env::var("RECONSTRUCT_FRAME") {
+        Ok(val) => Some(val.parse::<u64>().unwrap()),
+        Err(std::env::VarError::NotPresent) => None,
+        Err(e) => panic!("Faield to parse `RECONSTRUCT_FRAME`: {e}"),
+    };
+
     for inum in 0..IMAGE_AMOUNT {
         let inum = inum + 1;
         let image = image::open(format!("images/{DOWNSCALE}x/frame{inum:04}.png")).unwrap();
@@ -114,6 +120,15 @@ fn main() {
         working_buffer.copy_from(&image, 0, 0).unwrap();
 
         let quad_tree = QuadTree::build(&working_buffer);
+
+        if let Some(rfnum) = reconstruct_frame_num
+            && rfnum == inum
+        {
+            let img = quad_tree.reconstruct_img();
+            img.save(out_dir.join(format!("reconstructed_frame_{rfnum}.png")))
+                .unwrap();
+            progress_bar.println(format!("Reconstructed frame {rfnum}"));
+        }
 
         for tile_id in quad_tree.root.get_shapes() {
             *chunk_counts.entry(*tile_id).or_insert(0) += 1;

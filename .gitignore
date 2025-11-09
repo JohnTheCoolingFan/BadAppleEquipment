@@ -1,6 +1,8 @@
 /target
 /images
 /BadApple.mp4
+/BadApple.webm
 /*.lua
 /*.csv
 /output
+/BadAppleEquipment/generated
