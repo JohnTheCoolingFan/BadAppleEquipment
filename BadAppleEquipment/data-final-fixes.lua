@@ -11,7 +11,13 @@ data.raw['equipment-grid']['medium-equipment-grid'].height = height
 
 data.raw['utility-sprites']['default'].equipment_slot.scale =
     data.raw['utility-sprites']['default'].equipment_slot.scale / 20
-data.raw['utility-constants']['default'].equipment_default_background_border_color = { 89 / 255, 89 / 255, 89 / 255 }
+--data.raw['utility-constants']['default'].equipment_default_background_border_color = { 89 / 255, 89 / 255, 89 / 255 }
+
+local border_color = nil
+
+if settings.startup['bad-apple-show-borders'] then
+    border_color = { 89 / 255, 89 / 255, 89 / 255 }
+end
 
 --local used_tiles = require("used-tiles")
 local frames_tree = require("generated.frames-tree")
@@ -83,6 +89,7 @@ for framenum, node in pairs(frames_tree) do
                 type = "generator-equipment",
                 name = "bad-apple-tile-" .. framenum,
                 take_result = "bad-apple-starter",
+                background_border_color = border_color,
                 sprite =
                 {
                     filename = "__base__/graphics/equipment/fission-reactor-equipment.png",
@@ -103,7 +110,7 @@ for framenum, node in pairs(frames_tree) do
                     type = "electric",
                     usage_priority = "primary-output"
                 },
-                power = "1kW",
+                power = "1W",
                 categories = { "armor" }
             }
         })
@@ -132,7 +139,7 @@ data:extend({
             type = "electric",
             usage_priority = "primary-output"
         },
-        power = "1kW",
+        power = "1W",
         categories = { "armor" }
     },
     {
@@ -157,6 +164,7 @@ for i = 0, 7 do
             type = "generator-equipment",
             name = "bad-apple-tile-full-" .. side_size,
             take_result = "bad-apple-starter",
+            background_border_color = border_color,
             sprite =
             {
                 filename = "__base__/graphics/equipment/fission-reactor-equipment.png",
@@ -176,7 +184,7 @@ for i = 0, 7 do
                 type = "electric",
                 usage_priority = "primary-output"
             },
-            power = "1kW",
+            power = "1W",
             categories = { "armor" }
         },
         --[[
