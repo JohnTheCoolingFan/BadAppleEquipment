@@ -13,7 +13,7 @@ default:
 
 buildmod:
     # https://github.com/JohnTheCoolingFan/rfmp
-    # Feel free to replace with your favorite method of buildign the mod files
+    # Feel free to replace with your favorite method of building the mod files into a mod zip
     cd BadAppleEquipment; \
         rfmp -i "${FACTORIO_MODS_HOME:-../output/}"
 
