@@ -19,6 +19,7 @@ buildmod:
 
 generate:
     cargo run --release
+    mkdir -p BadAppleEquipment/generated
     cp output/frames-tree.lua BadAppleEquipment/generated/frames-tree.lua
     cp output/repeating-tiles.lua BadAppleEquipment/generated/repeating-tiles.lua
 
