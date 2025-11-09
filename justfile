@@ -20,6 +20,7 @@ buildmod:
 generate:
     cargo run --release
     cp output/frames-tree.lua BadAppleEquipment/generated/frames-tree.lua
+    cp output/more-than-two-tiles.lua BadAppleEquipment/generated/more-than-two-tiles.lua
 
 reconstruct-frame FRAME='75':
     RECONSTRUCT_FRAME={{FRAME}} cargo run --release
