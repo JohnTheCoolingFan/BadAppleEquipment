@@ -1,6 +1,15 @@
+#!/usr/bin/env just --justfile
+
 alias bm := buildmod
 alias ba := buildall
 alias g := generate
+alias dv := download-video
+alias pi := process-img
+alias dvpi := download-and-process
+alias a := all
+
+default:
+    @just --list
 
 buildmod:
     # https://github.com/JohnTheCoolingFan/rfmp
