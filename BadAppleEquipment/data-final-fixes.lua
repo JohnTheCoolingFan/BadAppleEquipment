@@ -244,7 +244,7 @@ data:extend({
     {
         type = "armor",
         name = "bad-apple-viewer",
-        icon = "__base__/graphics/icons/display-panel.png",
+        icon = "__BadAppleEquipment__/graphics/icons/bad-apple-viewer.png",
         subgroup = "circuit-network",
         order = "e[bad-apple]-a[viewing-screen]",
         inventory_move_sound = item_sounds.mechanical_inventory_move,
