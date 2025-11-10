@@ -227,9 +227,9 @@ data:extend({
         place_as_equipment_result = "bad-apple-starter",
         subgroup = "circuit-network",
         order = "e[bad-apple]-b[starter-disc]",
-        inventory_move_sound = item_sounds.reactor_inventory_move,
-        pick_sound = item_sounds.reactor_inventory_pickup,
-        drop_sound = item_sounds.reactor_inventory_move,
+        inventory_move_sound = item_sounds.electric_small_inventory_move,
+        pick_sound = item_sounds.electric_small_inventory_pickup,
+        drop_sound = item_sounds.electric_small_inventory_move,
         stack_size = 20,
         weight = 0.25 * tons
     },
