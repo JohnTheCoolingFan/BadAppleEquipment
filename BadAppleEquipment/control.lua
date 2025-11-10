@@ -6,6 +6,10 @@ local max_width = constants.width
 local max_height = constants.height
 local tile_size = constants.chunk_size
 
+-- Recursively walks the quad tree
+-- 1. number nodes with value 1 are added to the table
+-- 2. string nodes are also added if they have a correponding tile prototype
+-- 3. table nodes are descended into recursively
 local function descend_tree(node, tile_positions_table, anchor_x, anchor_y, side_size)
     if anchor_x > max_width or anchor_y > max_height then
         return
@@ -37,7 +41,8 @@ end
 
 local tile_positions = {}
 
-local function populate_filled_squares(nodetree)
+-- Preprocess the graph by walking it and extracting all the tile positions that will be used
+local function populate_tile_positions_table(nodetree)
     for _, frametree in pairs(nodetree) do
         local frame_table = {}
         descend_tree(frametree, frame_table, 0, 0, 512)
@@ -49,7 +54,7 @@ local frames_tree = require("generated.frames-tree")
 
 script.on_init(function()
     log("Populating the table of filled squares")
-    populate_filled_squares(frames_tree)
+    populate_tile_positions_table(frames_tree)
 end)
 
 script.on_event(defines.events.on_player_placed_equipment, function(eventdata)
