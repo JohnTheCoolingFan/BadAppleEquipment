@@ -4,7 +4,7 @@ This repository includes the rust project for preprocessing initial data, as wel
 
 ## Licensing
 
-The code in this repository is licensed under MIT license, except for the image in `BadAppleEquipment/graphics/icons/part-electronic-storage.png`, which comes from [malcolmriley's unused renders])https://github.com/malcolmriley/unused-renders) and is licensed under [CC Attribution 4.0 International License](https://creativecommons.org/licenses/by/4.0/)
+The code in this repository is licensed under MIT license, except for the image in `BadAppleEquipment/graphics/icons/part-electronic-storage.png`, which comes from [malcolmriley's unused renders](https://github.com/malcolmriley/unused-renders) and is licensed under [CC Attribution 4.0 International License](https://creativecommons.org/licenses/by/4.0/)
 
 ## How this works
 
