@@ -13,7 +13,7 @@ local C = {
     grid_cell_scale = settings.startup['bad-apple-grid-scale'].value,
 }
 
-if settings.startup['bad-apple-show-borders'] then
+if not settings.startup['bad-apple-show-borders'].value then
     C.border_color = { 89 / 255, 89 / 255, 89 / 255 }
 end
 
