@@ -10,7 +10,7 @@ The code in this repository is licensed under MIT license, except for the image 
 
 ## How this works
 
-The Factorio modding API allows specifying custom shapes for the equipment, which is what is used here. Unfortunately, you specify the shapes by providing a list of x-y coordinate pairs for every filled square. Good enough when the grid's dimensions are not big and the amount of equipment is low. But this is the opposite case. Just having all frames as equipment in full resolution would require an insane amount of RAM. For my first attempt, I had to scale down the size of the frames by 3, which is shown in thsi video: https://youtu.be/qCHp5uNLUvY
+The Factorio modding API allows specifying custom shapes for the equipment, which is what is used here. Unfortunately, you specify the shapes by providing a list of x-y coordinate pairs for every filled square. Good enough when the grid's dimensions are not big and the amount of equipment is low. But this is the opposite case. Just having all frames as equipment in full resolution would require an insane amount of RAM. For my first attempt, I had to scale down the size of the frames by 3, which is shown in this video: https://youtu.be/qCHp5uNLUvY
 
 There were also issues with transferring the processed data. The raw sequence of points resulted in close to 5 gigabytes of lua code, which is more than what fits in a single file in a regular zip archive! The first workaround was to split the data into multiple files, which worked well. Second was to use run-length encoding, which reduced the file size SIGNIFICANTLY. But none of it addressed the RAM usage.
 
