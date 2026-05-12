@@ -78,9 +78,10 @@ impl Display for TileId {
 fn main() {
     let start = Instant::now();
 
-    let out_dir = PathBuf::from("output");
+    let out_dir_b = PathBuf::from("output");
+    let out_dir = out_dir_b.as_path();
     if !out_dir.exists() {
-        std::fs::create_dir(&out_dir).unwrap();
+        std::fs::create_dir(out_dir).unwrap();
     }
 
     let progress_bar = ProgressBar::new(IMAGE_AMOUNT).with_message("Processing images");
@@ -93,10 +94,6 @@ fn main() {
     let mut filled_squares_file =
         BufWriter::new(File::create(out_dir.join("filled-squares.lua")).unwrap());
     filled_squares_file.write_all(b"return {").unwrap();
-
-    let mut buf = [0; (CANVAS_SIZE * CANVAS_SIZE) as usize * Rgb::<u8>::CHANNEL_COUNT as usize];
-    let mut working_buffer =
-        ImageBuffer::<Rgb<u8>, _>::from_raw(CANVAS_SIZE, CANVAS_SIZE, buf.as_mut_slice()).unwrap();
 
     let processing_start = Instant::now();
 
@@ -113,51 +110,76 @@ fn main() {
         Err(e) => panic!("Failed to parse `RECONSTRUCT_FRAME`: {e}"),
     };
 
-    for inum in 0..IMAGE_AMOUNT {
-        let inum = inum + 1;
-        let image = image::open(format!("images/{DOWNSCALE}x/frame{inum:04}.png")).unwrap();
-        let image = image.into_rgb8();
-        working_buffer.copy_from(&image, 0, 0).unwrap();
+    std::thread::scope(|scope| {
+        for quad_tree in (0..IMAGE_AMOUNT)
+            .map(|inum| {
+                let pbclone = progress_bar.clone();
+                scope.spawn(move || {
+                    let inum = inum + 1;
+                    let image =
+                        image::open(format!("images/{DOWNSCALE}x/frame{inum:04}.png")).unwrap();
+                    let image = image.into_rgb8();
+                    let mut buf = Box::new(
+                        [0; (CANVAS_SIZE * CANVAS_SIZE) as usize
+                            * Rgb::<u8>::CHANNEL_COUNT as usize],
+                    );
+                    let mut working_buffer = ImageBuffer::<Rgb<u8>, _>::from_raw(
+                        CANVAS_SIZE,
+                        CANVAS_SIZE,
+                        buf.as_mut_slice(),
+                    )
+                    .unwrap();
 
-        let quad_tree = QuadTree::build(&working_buffer);
+                    working_buffer.copy_from(&image, 0, 0).unwrap();
+                    drop(image);
 
-        if let Some(rfnum) = reconstruct_frame_num
-            && rfnum == inum
-        {
-            let img = quad_tree.reconstruct_img();
-            img.save(out_dir.join(format!("reconstructed_frame_{inum:04}.png")))
-                .unwrap();
-            progress_bar.println(format!("Reconstructed frame {rfnum}"));
-        }
+                    let quad_tree = QuadTree::build(&working_buffer);
 
-        for tile_id in quad_tree.root.get_shapes() {
-            *chunk_counts.entry(*tile_id).or_insert(0) += 1;
-        }
+                    if let Some(rfnum) = reconstruct_frame_num
+                        && rfnum == inum
+                    {
+                        let img = quad_tree.reconstruct_img();
+                        img.save(out_dir.join(format!("reconstructed_frame_{inum:04}.png")))
+                            .unwrap();
+                        pbclone.println(format!("Reconstructed frame {rfnum}"));
+                    }
 
-        let quad_tree_lua = quad_tree.root.as_lua();
-
-        tree_out_file.write_all(quad_tree_lua.as_bytes()).unwrap();
-        tree_out_file.write_all(b",").unwrap();
-
-        filled_squares_file.write_all(b"{").unwrap();
-        for (x, y, size) in quad_tree.all_filled_squares() {
-            filled_squares_file
-                .write_all(format!("{{{x},{y},{size}}},").as_bytes())
-                .unwrap();
-        }
-        filled_squares_file.write_all(b"},").unwrap();
-
-        let total_in_frame: u64 = quad_tree
-            .iter()
-            .map(|node| match node.node {
-                QuadTreeNode::Shaped(id) => id.count_ones() as u64,
-                _ => 0,
+                    quad_tree
+                })
             })
-            .sum();
-        pixel_count_all += total_in_frame;
+            .collect::<Vec<_>>()
+            .into_iter()
+            .map(|handle| handle.join().unwrap())
+        {
+            for tile_id in quad_tree.root.get_shapes() {
+                *chunk_counts.entry(*tile_id).or_insert(0) += 1;
+            }
 
-        progress_bar.inc(1);
-    }
+            let quad_tree_lua = quad_tree.root.as_lua();
+
+            tree_out_file.write_all(quad_tree_lua.as_bytes()).unwrap();
+            tree_out_file.write_all(b",").unwrap();
+
+            filled_squares_file.write_all(b"{").unwrap();
+            for (x, y, size) in quad_tree.all_filled_squares() {
+                filled_squares_file
+                    .write_all(format!("{{{x},{y},{size}}},").as_bytes())
+                    .unwrap();
+            }
+            filled_squares_file.write_all(b"},").unwrap();
+
+            let total_in_frame: u64 = quad_tree
+                .iter()
+                .map(|node| match node.node {
+                    QuadTreeNode::Shaped(id) => id.count_ones() as u64,
+                    _ => 0,
+                })
+                .sum();
+            pixel_count_all += total_in_frame;
+
+            progress_bar.inc(1);
+        }
+    });
 
     tree_out_file.write_all(b"}").unwrap();
     tree_out_file.flush().unwrap();
